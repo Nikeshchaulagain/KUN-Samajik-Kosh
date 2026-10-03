@@ -1,0 +1,6 @@
+{
+  "name": "KUN Samajik Kosh - Community Fund & Daily Contribution Tracker",
+  "description": "Transparent daily donation tracker, monthly financial reports, member rankings, automated contribution reminders, and QR code payments for KUN Samajik Kosh.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

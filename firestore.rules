@@ -1,0 +1,181 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'google.com');
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'nikeshchaulagain50@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Fund Validation
+    function isValidFund(data) {
+      return data.name is string && data.name.size() >= 2 && data.name.size() <= 100 &&
+             data.code is string && data.code.size() >= 3 && data.code.size() <= 30 &&
+             data.currency is string && data.currency.size() <= 10 &&
+             data.defaultDailyAmount is number && data.defaultDailyAmount >= 0 &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 300)) &&
+             (!('bankDetails' in data) || (data.bankDetails is string && data.bankDetails.size() <= 800)) &&
+             (!('qrCodeUrl' in data) || (data.qrCodeUrl is string && data.qrCodeUrl.size() <= 150000)) &&
+             (!('reminderTemplate' in data) || (data.reminderTemplate is string && data.reminderTemplate.size() <= 500)) &&
+             (!('accessPolicy' in data) || (data.accessPolicy in ['admin_only_edit', 'open_edit'])) &&
+             (!('monthlyTargetGoal' in data) || (data.monthlyTargetGoal is number && data.monthlyTargetGoal >= 0)) &&
+             (!('dailyTargetGoal' in data) || (data.dailyTargetGoal is number && data.dailyTargetGoal >= 0)) &&
+             (!('targetTitle' in data) || (data.targetTitle is string && data.targetTitle.size() <= 100));
+    }
+
+    // Membership Validation
+    function isValidUserMembership(data) {
+      return data.userId is string && data.fundId is string &&
+             data.role in ['admin', 'member', 'viewer'] &&
+             (!('fundName' in data) || (data.fundName is string && data.fundName.size() <= 100)) &&
+             (!('fundCode' in data) || (data.fundCode is string && data.fundCode.size() <= 30));
+    }
+
+    // Member Validation
+    function isValidMember(data) {
+      return data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 100 &&
+             data.phone is string && data.phone.size() >= 7 && data.phone.size() <= 20 &&
+             data.defaultDailyAmount is number && data.defaultDailyAmount >= 0 && data.defaultDailyAmount <= 1000000 &&
+             data.status in ['active', 'inactive'] &&
+             (!('fundId' in data) || (data.fundId is string && data.fundId.size() <= 128)) &&
+             (!('address' in data) || (data.address is string && data.address.size() <= 150)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 300)) &&
+             (!('joinDate' in data) || (data.joinDate is string && data.joinDate.size() <= 20));
+    }
+
+    // Contribution Validation
+    function isValidContribution(data) {
+      return data.memberId is string && data.memberId.size() <= 128 &&
+             data.date is string && data.date.size() == 10 && data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+             data.monthKey is string && data.monthKey.size() == 7 && data.monthKey.matches('^[0-9]{4}-[0-9]{2}$') &&
+             data.hasDonated is bool &&
+             data.amount is number && data.amount >= 0 && data.amount <= 10000000 &&
+             (!('fundId' in data) || (data.fundId is string && data.fundId.size() <= 128)) &&
+             (!('memberName' in data) || (data.memberName is string && data.memberName.size() <= 100)) &&
+             (!('paymentMethod' in data) || (data.paymentMethod in ['cash', 'qr_code', 'bank_transfer', 'other'])) &&
+             (!('remarks' in data) || (data.remarks is string && data.remarks.size() <= 200));
+    }
+
+    // Fund Settings Validation
+    function isValidFundSettings(data) {
+      return data.orgName is string && data.orgName.size() >= 2 && data.orgName.size() <= 100 &&
+             data.currency is string && data.currency.size() <= 10 &&
+             data.defaultDailyAmount is number && data.defaultDailyAmount >= 0 &&
+             (!('qrCodeUrl' in data) || (data.qrCodeUrl is string && data.qrCodeUrl.size() <= 150000)) &&
+             (!('bankDetails' in data) || (data.bankDetails is string && data.bankDetails.size() <= 800)) &&
+             (!('reminderTemplate' in data) || (data.reminderTemplate is string && data.reminderTemplate.size() <= 500)) &&
+             (!('accessPolicy' in data) || (data.accessPolicy in ['admin_only_edit', 'open_edit'])) &&
+             (!('monthlyTargetGoal' in data) || (data.monthlyTargetGoal is number && data.monthlyTargetGoal >= 0)) &&
+             (!('dailyTargetGoal' in data) || (data.dailyTargetGoal is number && data.dailyTargetGoal >= 0)) &&
+             (!('targetTitle' in data) || (data.targetTitle is string && data.targetTitle.size() <= 100));
+    }
+
+    // Reminder Validation
+    function isValidReminder(data) {
+      return data.memberId is string && data.memberId.size() <= 128 &&
+             data.memberName is string && data.memberName.size() <= 100 &&
+             data.message is string && data.message.size() <= 400 &&
+             data.channel in ['push', 'whatsapp', 'sms'] &&
+             (!('fundId' in data) || (data.fundId is string && data.fundId.size() <= 128)) &&
+             (!('status' in data) || (data.status in ['sent', 'pending'])) &&
+             (!('date' in data) || (data.date is string && data.date.size() <= 20));
+    }
+
+    // Admins Collection
+    match /admins/{adminId} {
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Funds Collection (Multi-Fund & Kosh Instances)
+    match /funds/{fundId} {
+      allow get, list: if isSignedIn();
+      allow create: if isVerified() && isValidId(fundId) && isValidFund(incoming()) && incoming().ownerId == request.auth.uid;
+      allow update: if isVerified() && isValidId(fundId) && isValidFund(incoming()) && (
+        incoming().ownerId == existing().ownerId &&
+        (incoming().ownerId == request.auth.uid || isAdmin())
+      );
+      allow delete: if isVerified() && isValidId(fundId) && (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    // User Memberships Collection
+    match /user_memberships/{membershipId} {
+      allow get, list: if isSignedIn();
+      allow create: if isVerified() && isValidId(membershipId) && isValidUserMembership(incoming()) && incoming().userId == request.auth.uid;
+      allow update: if isVerified() && isValidId(membershipId) && isValidUserMembership(incoming()) && incoming().userId == request.auth.uid;
+      allow delete: if isVerified() && isValidId(membershipId) && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    // Members Collection
+    match /members/{memberId} {
+      allow get, list: if isSignedIn();
+      allow create: if isVerified() && isValidId(memberId) && isValidMember(incoming()) && incoming().createdBy == request.auth.uid;
+      allow update: if isVerified() && isValidId(memberId) && isValidMember(incoming()) && (
+        incoming().createdBy == existing().createdBy &&
+        (incoming().createdBy == request.auth.uid || isAdmin())
+      );
+      allow delete: if isVerified() && isValidId(memberId) && (existing().createdBy == request.auth.uid || isAdmin());
+    }
+
+    // Contributions Collection
+    match /contributions/{contributionId} {
+      allow get, list: if isSignedIn();
+      allow create: if isVerified() && isValidId(contributionId) && isValidContribution(incoming()) && incoming().recordedBy == request.auth.uid;
+      allow update: if isVerified() && isValidId(contributionId) && isValidContribution(incoming()) && (
+        incoming().recordedBy == existing().recordedBy &&
+        (incoming().recordedBy == request.auth.uid || isAdmin())
+      );
+      allow delete: if isVerified() && isValidId(contributionId) && (existing().recordedBy == request.auth.uid || isAdmin());
+    }
+
+    // Fund Settings Collection
+    match /fund_settings/{settingId} {
+      allow get, list: if isSignedIn();
+      allow create: if isVerified() && isValidId(settingId) && isValidFundSettings(incoming());
+      allow update: if isVerified() && isValidId(settingId) && isValidFundSettings(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // Reminders Collection
+    match /reminders/{reminderId} {
+      allow get, list: if isSignedIn();
+      allow create: if isVerified() && isValidId(reminderId) && isValidReminder(incoming()) && incoming().createdBy == request.auth.uid;
+      allow update: if isVerified() && isValidId(reminderId) && isValidReminder(incoming()) && (incoming().createdBy == request.auth.uid || isAdmin());
+      allow delete: if isVerified() && isValidId(reminderId) && (existing().createdBy == request.auth.uid || isAdmin());
+    }
+
+    // Connection Test Collection
+    match /test/{docId} {
+      allow read: if isSignedIn();
+    }
+  }
+}

@@ -1,0 +1,353 @@
+{
+  "entities": {
+    "Fund": {
+      "title": "Fund",
+      "description": "A distinct Samajik Kosh fund with its own code, admins, and financial targets.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Fund / Kosh organization name",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "code": {
+          "type": "string",
+          "description": "Short 6-8 character unique join code e.g. KUN-2026",
+          "minLength": 4,
+          "maxLength": 20
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of the community fund",
+          "maxLength": 300
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "UID of creator/admin"
+        },
+        "ownerEmail": {
+          "type": "string",
+          "description": "Email of fund owner"
+        },
+        "currency": {
+          "type": "string",
+          "description": "Currency symbol e.g. Rs.",
+          "maxLength": 10
+        },
+        "defaultDailyAmount": {
+          "type": "number",
+          "description": "Recommended daily pledge"
+        },
+        "bankDetails": {
+          "type": "string",
+          "description": "Bank account & mobile banking details",
+          "maxLength": 800
+        },
+        "qrCodeUrl": {
+          "type": "string",
+          "description": "QR image data URL",
+          "maxLength": 150000
+        },
+        "reminderTemplate": {
+          "type": "string",
+          "description": "WhatsApp/SMS reminder message template",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp"
+        }
+      },
+      "required": ["name", "code", "ownerId", "currency", "defaultDailyAmount"]
+    },
+    "UserMembership": {
+      "title": "UserMembership",
+      "description": "Links a user to a Samajik Kosh they have created or joined.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "User UID"
+        },
+        "fundId": {
+          "type": "string",
+          "description": "Fund ID joined"
+        },
+        "fundName": {
+          "type": "string",
+          "description": "Cached fund name"
+        },
+        "fundCode": {
+          "type": "string",
+          "description": "Cached fund code"
+        },
+        "role": {
+          "type": "string",
+          "description": "Access level",
+          "enum": ["admin", "member", "viewer"]
+        },
+        "joinedAt": {
+          "type": "string",
+          "description": "ISO timestamp"
+        }
+      },
+      "required": ["userId", "fundId", "role"]
+    },
+    "Member": {
+      "title": "Member",
+      "description": "A registered member in KUN Samajik Kosh who contributes daily or periodically.",
+      "type": "object",
+      "properties": {
+        "fundId": {
+          "type": "string",
+          "description": "Associated Fund ID"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Full legal or community name of member",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "phone": {
+          "type": "string",
+          "description": "Contact phone or mobile number for reminders",
+          "minLength": 7,
+          "maxLength": 20
+        },
+        "address": {
+          "type": "string",
+          "description": "Ward, village, or address",
+          "maxLength": 150
+        },
+        "defaultDailyAmount": {
+          "type": "number",
+          "description": "Daily pledge amount (default 10 NPR/Rs)"
+        },
+        "joinDate": {
+          "type": "string",
+          "description": "Date joined formatted as YYYY-MM-DD",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "status": {
+          "type": "string",
+          "description": "Member active or inactive status",
+          "enum": ["active", "inactive"]
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional notes or member role",
+          "maxLength": 300
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "Firebase UID of user who registered member"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last modification"
+        }
+      },
+      "required": ["fullName", "phone", "defaultDailyAmount", "status", "createdBy"]
+    },
+    "Contribution": {
+      "title": "Contribution",
+      "description": "Daily donation record indicating whether member contributed and amount.",
+      "type": "object",
+      "properties": {
+        "fundId": {
+          "type": "string",
+          "description": "Associated Fund ID"
+        },
+        "memberId": {
+          "type": "string",
+          "description": "Document ID of member"
+        },
+        "memberName": {
+          "type": "string",
+          "description": "Cached member name for quick display and reports",
+          "maxLength": 100
+        },
+        "date": {
+          "type": "string",
+          "description": "Donation record date (YYYY-MM-DD)",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "monthKey": {
+          "type": "string",
+          "description": "Month partition key (YYYY-MM)",
+          "pattern": "^[0-9]{4}-[0-9]{2}$"
+        },
+        "hasDonated": {
+          "type": "boolean",
+          "description": "Whether member has donated for this date"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Donation amount for this date in NPR"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "Mode of payment",
+          "enum": ["cash", "qr_code", "bank_transfer", "other"]
+        },
+        "remarks": {
+          "type": "string",
+          "description": "Receipt no, transaction remarks, or note",
+          "maxLength": 200
+        },
+        "recordedBy": {
+          "type": "string",
+          "description": "Firebase UID of the recorder"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp when recorded"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp when updated"
+        }
+      },
+      "required": ["memberId", "date", "monthKey", "hasDonated", "amount", "recordedBy"]
+    },
+    "FundSettings": {
+      "title": "FundSettings",
+      "description": "Global or organization configuration including QR code image, bank details, and default pledge.",
+      "type": "object",
+      "properties": {
+        "orgName": {
+          "type": "string",
+          "description": "Organization name e.g. KUN Samajik Kosh",
+          "maxLength": 100
+        },
+        "currency": {
+          "type": "string",
+          "description": "Currency label e.g. Rs.",
+          "maxLength": 10
+        },
+        "defaultDailyAmount": {
+          "type": "number",
+          "description": "Default daily donation recommendation"
+        },
+        "qrCodeUrl": {
+          "type": "string",
+          "description": "Data URL or image URL of the donation QR code",
+          "maxLength": 150000
+        },
+        "bankDetails": {
+          "type": "string",
+          "description": "Bank account name, number, branch info",
+          "maxLength": 500
+        },
+        "reminderTemplate": {
+          "type": "string",
+          "description": "Template message for WhatsApp/SMS/Push reminders",
+          "maxLength": 500
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "UID of admin who updated settings"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp"
+        }
+      },
+      "required": ["orgName", "currency", "defaultDailyAmount"]
+    },
+    "Reminder": {
+      "title": "Reminder",
+      "description": "Log of reminders triggered for unpaid members.",
+      "type": "object",
+      "properties": {
+        "fundId": {
+          "type": "string",
+          "description": "Associated Fund ID"
+        },
+        "memberId": {
+          "type": "string",
+          "description": "Target member id"
+        },
+        "memberName": {
+          "type": "string",
+          "description": "Target member name"
+        },
+        "date": {
+          "type": "string",
+          "description": "Date or period reminded for"
+        },
+        "message": {
+          "type": "string",
+          "description": "Reminder text content",
+          "maxLength": 400
+        },
+        "channel": {
+          "type": "string",
+          "description": "Notification delivery channel",
+          "enum": ["push", "whatsapp", "sms"]
+        },
+        "status": {
+          "type": "string",
+          "description": "Delivery status",
+          "enum": ["sent", "pending"]
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "Sender UID"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp"
+        }
+      },
+      "required": ["memberId", "memberName", "message", "channel", "createdBy"]
+    }
+  },
+  "firestore": {
+    "/funds/{fundId}": {
+      "schema": {
+        "$ref": "#/entities/Fund"
+      },
+      "description": "Samajik Kosh fund instances with unique join codes"
+    },
+    "/user_memberships/{membershipId}": {
+      "schema": {
+        "$ref": "#/entities/UserMembership"
+      },
+      "description": "Links users to the funds they have joined or created"
+    },
+    "/members/{memberId}": {
+      "schema": {
+        "$ref": "#/entities/Member"
+      },
+      "description": "List of active and inactive members in the KUN Samajik Kosh"
+    },
+    "/contributions/{contributionId}": {
+      "schema": {
+        "$ref": "#/entities/Contribution"
+      },
+      "description": "Daily contribution records for members"
+    },
+    "/fund_settings/{settingId}": {
+      "schema": {
+        "$ref": "#/entities/FundSettings"
+      },
+      "description": "Organization fund settings and QR code information"
+    },
+    "/reminders/{reminderId}": {
+      "schema": {
+        "$ref": "#/entities/Reminder"
+      },
+      "description": "Reminder logs and notifications sent to members"
+    }
+  }
+}
